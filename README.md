@@ -2,7 +2,7 @@
 
 **Steganon** is an extended implementation of the [LSB steganography algorithm](https://www.google.com/search?q=LSB+steganography+algorithm).
 
-In short, steganography **LSB** is a method of hiding data inside pixels of image. Every pixel of an image consist of three integers (**0-255**, or **one byte**). They describe an amount of **R**ed, **G**reen and **B**lue colors. We take User's data to hide and convert it to a **bit string**; then we take next target pixel and select first integer: **R**. We convert this integer into bit string and change it's [least significant bit](https://en.wikipedia.org/wiki/Bit_numbering) to the next bit of User's data. Repeat this process for **G** and **B** then write altered pixel back into image. Repeat until User's data is not empty. Such minor change to **RGB** is invisible to human eye and gives us a chance to hide a **three bits** of data **per pixel** (three pixels per byte).
+In short, steganography **LSB** is a method of hiding data inside pixels of image. Every pixel of an image consist of three integers (**0-255**, or **one byte**). They describe an amount of **R**ed, **G**reen and **B**lue colors. We take User's data to hide and convert it to a **bit string**; then we take next target pixel and select first integer: **R**. We convert this integer into bit string and change it's [least significant bit](https://en.wikipedia.org/wiki/Bit_numbering) to the next bit of User's data. Repeat this process for **G** and **B** then write altered pixel back into image. Repeat until User's data is not empty. Such change to **RGB** is invisible to human eye and gives us chance to hide **three bits** of data **per pixel** (three pixels per byte).
 
 ## Difference between classic LSB and LSB_WS
 
@@ -88,7 +88,7 @@ print(lsb_ws.extract()) # b'Secret!!!'
 
 ## Additional Information
 
-1. This library was developed by me and currently **wasn't** verified by cryptography experts. Use with caution!
+1. All of this developed by me and currently **wasn't** verified by cryptography experts. Use with caution!
 2. `hide()` process can be time-consuming on long Data and small image. Note: **one byte of data is 3 pixels**;
 3. This library **will not** work with JPEG. PNG is OK and recommended. Other formats need testing;
 4. Best template to hide data is a compressed JPEG turned to PNG. Library have `tools.pngify`, use it.
