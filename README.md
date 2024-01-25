@@ -89,7 +89,7 @@ print(lsb_ws.extract()) # b'Secret!!!'
 ## Additional Information
 
 1. All of this developed by me and currently **wasn't** verified by cryptography experts. Use with caution!
-2. `hide()` process can be time-consuming on long Data and small image. Note: **one byte of data is 3 pixels**;
+2. `hide()` process can be long on big Data and small image. Note: **one byte of data is 3 pixels**;
 3. This library **will not** work with JPEG. PNG is OK and recommended. Other formats need testing;
 4. Best template to hide data is a compressed JPEG turned to PNG. Library have `tools.pngify`, use it.
 
