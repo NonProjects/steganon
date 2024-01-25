@@ -6,6 +6,7 @@ In short, steganography **LSB** is a method of hiding data inside pixels of imag
 
 ## Difference between classic LSB and LSB_WS
 
+
 This repository implements a different type of LSB: **LSB With [Seed](https://en.wikipedia.org/wiki/Random_seed)** (short. `LSB_WS`). This is a (designed by [**me**](https://github.com/NotStatilko)) subclass of LSB that is use [**PRNG**](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) with changeable [seed](https://en.wikipedia.org/wiki/Random_seed) to determine targeted pixels. Here, *Seed* acts like password. You must know it to extract any hidden data, and fact that image contains any hidden data is more obscure. I believe that `LSB_WS` is more strong against any [analyze](https://www.google.com/search?q=how+to+crack+lsb+stegano).
 
 ## Installation
@@ -83,9 +84,12 @@ print(lsb_ws.extract()) # b'Secret!!!'
 
 `steganon.LSB_WS` class has a `testmode` key. We can use it to check affected pixels under different seeds
 
+<img src="https://github.com/NonProjects/steganon/assets/43419673/91d0c920-2749-4a5d-afa1-b43d76b29aa0" width="777" height="777"></img>
+
 ## Additional Information
 
-1. This algorithm (WS) was developed by me and currently **wasn't** verified by nice cryptography experts. Use with caution;
+1. This algorithm (WS) was developed by me and currently **wasn't** verified by nice cryptography experts. Use with caution!
+
 2. `hide()` process can be very time-consuming on long Secret Data and small image. Note that **one byte of data == 3 pixels**;
 3. Probably this library **will not** work with JPEG. PNG is OK and recommended. Other formats needs more testing;
 4. Best template to hide data is a nice compressed JPEG turned to PNG. Library have `tools.pngify`, consider use it.
@@ -94,8 +98,7 @@ Contact me on thenonproton@pm.me (or just open Issue) if you have any feedback o
 
 ## All Aboard!
 
-Try to download example image from below and extract secret data from it (may take some time :)
-
+Try to download [**this example image**](https://github.com/NonProjects/steganon/assets/43419673/2b13ef7c-b37f-4d4f-a88f-7b035324a905) and extract secret data from it (may take some time :)\
 Seed is `b'OZZY'`, save data to the file with `.ogg` extension and play with your media player
 
 ###### Crazy? but that's how it goes!
