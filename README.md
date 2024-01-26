@@ -80,6 +80,16 @@ lsb_ws = LSB_WS(image, b'seed_0') # Init with seed=b'seed_0'
 
 print(lsb_ws.extract()) # b'Secret!!!'
 ```
+
+## Image Comparison
+
+Here is comparison between [**Original image (1)**](https://github.com/NonProjects/steganon/assets/43419673/4f0f7238-f51e-45c5-80b0-3e039b26c8de) and [**Image with written on pixels data (2)**](https://github.com/NonProjects/steganon/assets/43419673/ddc67292-d085-47dc-ae04-2dd131496899).
+
+<img src="https://github.com/NonProjects/steganon/assets/43419673/45e529b6-c45a-454c-bbf3-8426ba9dd9f5" width="777" height="-1"></img>
+
+[**Modified Image (2)**](https://github.com/NonProjects/steganon/assets/43419673/ddc67292-d085-47dc-ae04-2dd131496899) has whole [**Zen of Python**](https://peps.python.org/pep-0020/#the-zen-of-python) written on it.\
+You can extract Zen from **(2)** by using Seed `b'spam_eggs'`
+
 ## TestMode on LSB_WS
 
 `steganon.LSB_WS` class has a `testmode` key. We can use it to check affected pixels under different seeds
