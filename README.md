@@ -84,10 +84,11 @@ print(lsb_ws.extract()) # b'Secret!!!'
 
 `steganon.LSB_WS` class has a `testmode` key. We can use it to check affected pixels under different seeds
 
-<img src="https://github.com/NonProjects/steganon/assets/43419673/91d0c920-2749-4a5d-afa1-b43d76b29aa0" width="777" height="777"></img>
+<img src="https://github.com/NonProjects/steganon/assets/43419673/91d0c920-2749-4a5d-afa1-b43d76b29aa0" width="777" height="-1"></img>
 
 ## Additional Information
 
+0. **Always use a different seed!** Pixel positions will be the same on different images and text!
 1. All of this developed by me and currently **wasn't** verified by cryptography experts. Use with caution!
 2. `hide()` process can be long on big Data and small image. Note: **one byte of data is 3 pixels**;
 3. This library **will not** work with JPEG. PNG is OK and recommended. Other formats need testing;
@@ -100,4 +101,4 @@ Contact me on thenonproton@pm.me (or just open Issue) if you have any feedback o
 Try to download [**this example image**](https://github.com/NonProjects/steganon/assets/43419673/2b13ef7c-b37f-4d4f-a88f-7b035324a905) and extract secret data from it (may take some time :)\
 Seed is `b'OZZY'`, save data to the file with `.ogg` extension and play with your media player
 
-###### Crazy? but that's how it goes!
+###### Crazy? But that's how it goes!
