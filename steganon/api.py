@@ -250,6 +250,6 @@ class LSB_WS:
         ])
         return hidden_bytes
 
-    def save(self, fp) -> None:
+    def save(self, fp, format: str=None) -> None:
         """Sugar to the self.image.save method"""
-        self.image.save(fp)
+        self.image.save(fp, format=format)
