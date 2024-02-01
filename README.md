@@ -23,6 +23,14 @@ cd steganon-env && . bin/activate
 git clone https://github.com/NonProjects/steganon
 pip install ./steganon
 ```
+**SteganoN has basic CLI implementation**
+```bash
+# Install SteganoN with CLI
+pip install steganon[cli]
+```
+
+![image](https://github.com/NonProjects/steganon/assets/43419673/79e67a0a-4f4b-400d-8aa9-fdfdd9bcb7f3)
+
 
 ## Example
 
