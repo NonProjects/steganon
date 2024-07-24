@@ -5,7 +5,6 @@ from pathlib import Path
 
 from traceback import format_exception
 from sys import stdout, version as sys_version
-
 try:
     import click
 except ImportError:
@@ -13,6 +12,8 @@ except ImportError:
         'SteganoN was installed without CLI. Try to install steganon[cli]'
     )
 from steganon import LSB_WS, Image, pngify, VERSION
+from .tools import progress_callback
+
 
 # ========================================================= #
 # = CLI configuration ===================================== #
@@ -109,9 +110,11 @@ def hide(data, seed, input, output, testmode):
         except ValueError:
             seed = seed.encode()
 
-    lsb_ws = LSB_WS(Image.open(input), seed,
-                    testmode=testmode)
+    lsb_ws = LSB_WS(Image.open(input), seed, testmode=testmode,
+        progress_callback=progress_callback)
     lsb_ws.hide(data)
+
+    click.echo()
 
     if not output:
         output = input
@@ -119,7 +122,7 @@ def hide(data, seed, input, output, testmode):
     elif output == 'STDOUT':
         output = stdout.buffer
 
-    lsb_ws.save(output, format='PNG')
+    lsb_ws.save(output)
 
 @cli.command()
 @click.option(
@@ -159,14 +162,13 @@ def extract(seed, input, output):
         except ValueError:
             seed = seed.encode()
 
-    lsb_ws = LSB_WS(Image.open(input), seed)
+    lsb_ws = LSB_WS(Image.open(input), seed,
+        progress_callback=progress_callback)
     secret_data = lsb_ws.extract()
 
-    if output:
-        out = open(output, 'wb')
-    else:
-        out = stdout.buffer
+    click.echo()
 
+    out = open(output, 'wb') if output else stdout.buffer
     out.write(secret_data)
 
 @cli.command(name='pngify')
