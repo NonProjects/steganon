@@ -56,6 +56,13 @@ secret_bin = binary(secret) = list('01010011011001010110001101110010011001010111
 
 prng = PRNG(seed) # In reality we use Python's random module, which is Mersenne Twister
 
+# The first 9 pixels of "prng.random_pixel" will be "Information
+# pixels". We will store the total bytesize of secret data in them,
+# so it's easy to know how much pixels we need to extract. As
+# 9 pixels is 3 bytes, the maximum allowed bytesize to hide per
+# one image is 16MiB-1 bytes == 16777215 (as integer).
+info_pixels = [prng.random_pixel(image) for _ in range(9)]
+
 while secret_bin:
     # In the actual code we store position of pixels that we changed, so
     # if "random_pixel" will return us pixel that already been altered
@@ -83,7 +90,7 @@ while secret_bin:
 
 from steganon import Image, LSB_WS
 
-image = Image.open('example.png') # Opening Image with hidden data
+image = Image.open('example.png') # Open Image with hidden data
 lsb_ws = LSB_WS(image, b'seed_0') # Init with seed=b'seed_0'
 
 print(lsb_ws.extract()) # b'Secret!!!'
@@ -110,13 +117,14 @@ You can extract Zen from **(2)** by using Seed `b'spam_eggs'`
 1. All of this developed by me and currently **wasn't** verified by cryptography experts. Use with caution!
 2. `hide()` process can be long on big Data and small image. Note: **one byte of data is 3 pixels**;
 3. This library **will not** work with JPEG. PNG is OK and recommended. Other formats need testing;
-4. Best template to hide data is a compressed JPEG turned to PNG. Library have `tools.pngify`, use it.
+4. Best template to hide data is a compressed JPEG turned to PNG. Library have `tools.pngify`, use it;
+5. Recommended image size is **2000x2000**+. The bigger your image the bigger amount of bytes you can hide.
 
-Contact me on thenonproton@pm.me (or just open Issue) if you have any feedback on this library.
+Contact me on **thenonproton@pm.me** (or just **open Issue**) if you have any feedback on this library.
 
 ## All Aboard!
 
-Try to download [**this example image**](https://github.com/NonProjects/steganon/assets/43419673/2b13ef7c-b37f-4d4f-a88f-7b035324a905) and extract secret data from it (may take some time :)\
+Try to download [**this example image**](https://github.com/user-attachments/assets/58c07c1f-c5d8-4388-b7c4-0ecb218f4255) and extract secret information from it\
 Seed is `b'OZZY'`, save data to the file with `.ogg` extension and play with your media player
 
 ###### Crazy? But that's how it goes!
