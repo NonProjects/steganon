@@ -1,11 +1,12 @@
-from random import randrange, seed as random_seed
+from random import Random
 from os import PathLike
+from typing import Callable, Optional
 
 from PIL import Image
 
 from .errors import (
     StateAlreadyCreated, SeedAlreadyUsed,
-    InvalidSeed, TestModeEnabled
+    InvalidSeed, TestModeEnabled, IncorrectDecode
 )
 
 __all__ = ['LSB_WS']
@@ -28,14 +29,17 @@ class LSB_WS:
     on encoding and decoding data will result in a
     successful extraction, otherwise not.
     """
-    def __init__(self, image: Image, seed, testmode: bool=False):
+    def __init__(
+            self, image: Image, seed: bytes,
+            testmode: Optional[bool] = False,
+            progress_callback = Optional[None]):
         """
         Arguments:
             image (``Image``):
                 The target image. You will hide
                 your secret text in it.
 
-            seed (*Any hashable Python object*):
+            seed (``bytes``):
                 Selection of pixels will be based
                 on a PRNG seed. Treat it like a
                 password and DON'T disclose.
@@ -61,13 +65,15 @@ class LSB_WS:
         self.__testmode = testmode
 
         self.__seed = seed
-        random_seed(self.__seed)
+
+        self._random = Random(self.__seed)
+        self._progress_callback = progress_callback
 
     def __get_free_pixel_position(self) -> tuple:
         """Will return coordinates of unused pixel"""
         while True:
-            x = randrange(self._size[0])
-            y = randrange(self._size[1])
+            x = self._random.randrange(self._size[0])
+            y = self._random.randrange(self._size[1])
 
             if (x,y) in self.__edited_pixels_pos:
                 continue
@@ -86,14 +92,19 @@ class LSB_WS:
             self.__extract_bits_from_pixel(self.__px[i[0], i[1]])
             for i in coordinates
         ])
-        bytes_ = []
-        for _ in range(len(bits)//9):
-            bytes_.append(bytes(
-                [int(bits[:9],2)])
-            )
-            bits = bits[9:]
+        try:
+            bytes_, pos = [], 0
+            for i in range(len(bits)//9):
+                bytes_.append(int(bits[pos:pos+9],2))
+                pos += 9
 
-        return b''.join(bytes_)
+        except ValueError as e:
+            raise IncorrectDecode(
+                'Can not decode bytes. Maybe image was incorrectly '
+                'compressed on saving? Use bigger W:H if you want '
+                'to store big data.') from e
+
+        return bytes(bytes_)
 
     def __get_information_size(self) -> int:
         """Will return a total length of hidden in image text"""
@@ -123,7 +134,7 @@ class LSB_WS:
         if self.__mode:
             raise SeedAlreadyUsed('Old seed already in use, can not change')
         self.__seed = seed
-        random_seed(self.__seed)
+        self._random = Random(self.__seed)
 
     def hide(self, information: bytes) -> int:
         """
@@ -172,59 +183,67 @@ class LSB_WS:
         information = [*info_size_bytes, *information]
         info_pixels_pos_copy = self.__information_pixels_pos.copy()
 
-        while information:
-            current_bits = list(bin(information.pop(0))[2:].zfill(8))
+        information_length = len(information)
+
+        for indx, byte in enumerate(information):
+            if self._progress_callback:
+                self._progress_callback(indx+1, information_length)
+
             # Should be bit per pixel color (RGB), so 8 bits per byte
             # isn't enough :D. We add additional zero at binary start
-            current_bits.insert(0, '0')
+            current_bits = list(f'0{bin(byte)[2:].zfill(8)}')
+            # Will take current_bits[current_bits_pos] later on code
+            current_bits_pos = 0
 
-            while current_bits:
+            for _ in range(len(current_bits) // 3):
+                # current_bit is a current_bit of data to hide
                 while True:
                     if info_pixels_pos_copy:
                         x,y = info_pixels_pos_copy.pop(0)
                     else:
-                        x = randrange(self._size[0])
-                        y = randrange(self._size[1])
+                        x = self._random.randrange(self._size[0])
+                        y = self._random.randrange(self._size[1])
 
                     if len(self.__information_pixels_pos) < 9\
                         and (x,y) in self.__information_pixels_pos:
                             continue
-                    elif (x,y) in self.__edited_pixels_pos\
+
+                    if (x,y) in self.__edited_pixels_pos\
                         and (x,y) not in self.__information_pixels_pos:
                             continue
+                    break
+
+                if len(self.__information_pixels_pos) < 9:
+                    self.__information_pixels_pos.append((x,y))
+
+                candidate_pixel = self.__px[x,y]
+                self.__edited_pixels_pos.add((x,y))
+
+                # In case of grayscale
+                if isinstance(candidate_pixel, int):
+                    candidate_pixel = (candidate_pixel,)
+
+                if self.__testmode:
+                    if current_bits[current_bits_pos] == '0':
+                        new_pixel = [255,0,0]
                     else:
-                        if len(self.__information_pixels_pos) < 9:
-                            self.__information_pixels_pos.append((x,y))
+                        new_pixel = [0,255,0]
+                else:
+                    new_pixel = []
+                    for color in candidate_pixel[:3]:
+                        color_bits = list(bin(color))[2:]
+                        color_bits[-1] = current_bits[current_bits_pos]
 
-                        candidate_pixel = self.__px[x,y]
-                        self.__edited_pixels_pos.add((x,y))
+                        color_bits = ''.join(color_bits)
+                        new_pixel.append(int(color_bits,2))
 
-                        # In case of grayscale
-                        if isinstance(candidate_pixel, int):
-                            candidate_pixel = (candidate_pixel,)
+                current_bits_pos += 1
 
-                        if self.__testmode:
-                            # This is a current bit of data to hide
-                            current_bit = current_bits.pop(0)
+                # If image has transparency
+                if len(candidate_pixel) > 3:
+                    new_pixel.extend(candidate_pixel[3:])
 
-                            if current_bit == '0':
-                                new_pixel = [255,0,0]
-                            else:
-                                new_pixel = [0,255,0]
-                        else:
-                            new_pixel = []
-                            for color in candidate_pixel[:3]:
-                                color_bits = list(bin(color)[2:])
-                                color_bits[-1] = current_bits.pop(0)
-                                color_bits = ''.join(color_bits)
-                                new_pixel.append(int(color_bits,2))
-
-                        # Image with transparency
-                        if len(candidate_pixel) == 4:
-                            new_pixel.append(candidate_pixel[-1])
-
-                        self.image.putpixel((x,y), tuple(new_pixel))
-                        break
+                self.image.putpixel((x,y), tuple(new_pixel))
 
         return info_size
 
@@ -242,14 +261,18 @@ class LSB_WS:
                 not extract. Please make a new object'''
             )
         self.__mode = 2
-        random_seed(self.__seed)
 
-        hidden_bytes = self.__coordinates_to_bytes([
-            self.__get_free_pixel_position()
-            for _ in range(self.__get_information_size()*3)
-        ])
-        return hidden_bytes
+        hidden_bytes = []
+        info_size = self.__get_information_size() * 3
 
-    def save(self, fp, format: str=None) -> None:
+        for i in range(info_size):
+            if self._progress_callback:
+                self._progress_callback(i+1, info_size)
+
+            hidden_bytes.append(self.__get_free_pixel_position())
+
+        return self.__coordinates_to_bytes(hidden_bytes)
+
+    def save(self, fp, format: Optional[str] = None) -> None:
         """Sugar to the self.image.save method"""
         self.image.save(fp, format=format)

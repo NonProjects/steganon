@@ -10,5 +10,8 @@ class SeedAlreadyUsed(SteganonError):
 class InvalidSeed(SteganonError):
     """Can not extract any data with specified seed"""
 
+class IncorrectDecode(SteganonError):
+    """Can not extract any data due to error"""
+
 class TestModeEnabled(SteganonError):
     """TestMode was enabled. Can't use this feature."""
