@@ -32,7 +32,7 @@ class LSB_WS:
     def __init__(
             self, image: Image, seed: bytes,
             testmode: Optional[bool] = False,
-            progress_callback = Optional[None]):
+            progress_callback: Optional[Callable] = None):
         """
         Arguments:
             image (``Image``):
@@ -187,7 +187,11 @@ class LSB_WS:
 
         for indx, byte in enumerate(information):
             if self._progress_callback:
-                self._progress_callback(indx+1, information_length)
+                percent = round((indx+1) / information_length * 100)
+                # We report only progress by 5% because
+                # calling progress_callback can be slow
+                if percent and not percent % 5:
+                    self._progress_callback(indx+1, information_length)
 
             # Should be bit per pixel color (RGB), so 8 bits per byte
             # isn't enough :D. We add additional zero at binary start
@@ -228,6 +232,8 @@ class LSB_WS:
                         new_pixel = [255,0,0]
                     else:
                         new_pixel = [0,255,0]
+
+                    current_bits_pos += 1
                 else:
                     new_pixel = []
                     for color in candidate_pixel[:3]:
@@ -237,7 +243,7 @@ class LSB_WS:
                         color_bits = ''.join(color_bits)
                         new_pixel.append(int(color_bits,2))
 
-                current_bits_pos += 1
+                        current_bits_pos += 1
 
                 # If image has transparency
                 if len(candidate_pixel) > 3:
@@ -266,10 +272,14 @@ class LSB_WS:
         info_size = self.__get_information_size() * 3
 
         for i in range(info_size):
-            if self._progress_callback:
-                self._progress_callback(i+1, info_size)
-
             hidden_bytes.append(self.__get_free_pixel_position())
+
+            if self._progress_callback:
+                percent = round((i+1) / info_size * 100)
+                # We report only progress by 5% because
+                # calling progress_callback can be slow
+                if percent and not percent % 5:
+                    self._progress_callback(i+1, info_size)
 
         return self.__coordinates_to_bytes(hidden_bytes)
 
