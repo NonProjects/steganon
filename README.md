@@ -113,18 +113,28 @@ You can extract Zen from **(2)** by using Seed `b'spam_eggs'`
 
 ## Additional Information
 
+**Tested formats:**
+
+* ✅  **PNG**
+* ✅  **BMP**
+* ✅  **TIFF**
+* ✅  **WEBP**
+* ✅  **JPEG2000**
+* ❌  **JPG**
+* ❌  **HEIF**
+
 0. **Always use a different seed!** Pixel positions will be the same on different images and text!
 1. All of this developed by me and currently **wasn't** verified by cryptography experts. Use with caution!
 2. `hide()` process can be long on big Data and small image. Note: **one byte of data is 3 pixels**;
-3. This library **will not** work with JPEG. PNG is OK and recommended. Other formats need testing;
-4. Best template to hide data is a compressed JPEG turned to PNG. Library have `tools.pngify`, use it;
-5. Recommended image size is **2000x2000**+. The bigger your image the bigger amount of bytes you can hide.
+3. This library **will not** work with JPEG due to lossy design. Use lossless formats like PNG, WEBP, etc;
+4. Best template to hide data is a compressed JPEG turned to PNG. Library has `tools.pngify`, use it;
+5. Recommended image size is **2000x2000**+. The bigger image the bigger amount of bytes you can hide.
 
 Contact me on **thenonproton@pm.me** (or just **open Issue**) if you have any feedback on this library.
 
 ## All Aboard!
 
-Try to download [**this example image**](https://github.com/user-attachments/assets/58c07c1f-c5d8-4388-b7c4-0ecb218f4255) and extract secret information from it\
-Seed is `b'OZZY'`, save data to the file with `.ogg` extension and play with your media player
+Try to download [**this example image**](https://github.com/user-attachments/assets/58c07c1f-c5d8-4388-b7c4-0ecb218f4255) and extract secret information from it with seed `b'OZZY'`\
+Save data to the file with `.ogg` extension and play it with your favourite media player.
 
 ###### Crazy? But that's how it goes!
