@@ -143,7 +143,16 @@ def hide(data, seed, input, output, testmode):
             extracted Secret Data. If not
             specified, will write to STDOUT'''
 )
-def extract(seed, input, output):
+@click.option(
+    '--chunksize', '-c', type=int,
+    help='''Amount of bytes written per one iteration.
+            Please note that RAM consumption will be
+            much more than chunksize. Default is
+            250KB or 250000, which corresponds to
+            about 270MB of RAM. Typically bigger
+            chunksize doesn't impact speed much'''
+)
+def extract(seed, input, output, chunksize):
     """
     Command to get Data from pixels of Image
 
@@ -164,12 +173,13 @@ def extract(seed, input, output):
 
     lsb_ws = LSB_WS(Image.open(input), seed,
         progress_callback=progress_callback)
-    secret_data = lsb_ws.extract()
+    secret_data_gen = lsb_ws.extractgen(chunksize)
 
     click.echo()
 
     out = open(output, 'wb') if output else stdout.buffer
-    out.write(secret_data)
+    for block in secret_data_gen:
+        out.write(block)
 
 @cli.command(name='pngify')
 @click.option(

@@ -1,5 +1,5 @@
 from random import Random
-from typing import Callable, Optional, Iterable
+from typing import Callable, Optional, Generator
 
 from PIL import Image
 
@@ -87,7 +87,7 @@ class LSB_WS:
         pixel = (pixel,) if isinstance(pixel, int) else pixel
         return tuple((i & 1 for i in pixel[:3]))
 
-    def __coordinates_to_bytes(self, coordinates: Iterable) -> bytes:
+    def __coordinates_to_bytes(self, coordinates: list) -> bytes:
         """Will convert a bunch of coordinates to bytes"""
 
         counter, byte, bytes_ = 0, 0, []
@@ -277,11 +277,36 @@ class LSB_WS:
 
     def extract(self) -> bytes:
         """
-        Method used to extract hidden data from
-        the image. Will return all data by call.
+        Method used to extract hidden data from the image.
+        Will return all data in one call.
+
+        For large data, consider using extractgen().
+        """
+        return next(self.extractgen(float('inf')))
+
+    def extractgen(self, chunksize: Optional[int] = None)\
+            -> Generator[bytes, None, None]:
+        """
+        Generator that you can use to extract data by chunks
+        instead of one call. Useful for big hidden data, as
+        loading whole information may be crazy on RAM.
+
+        Arguments:
+            chunksize (``int``, optional):
+                chunksize is a size of bytes that would be returned
+                from generator per one next(). Please note that
+                RAM consumption wouldn't be equal to chunksize,
+                as there is many data to store.
+
+                If not specified, chunksize is 250000, or 250KB,
+                which corresponds to ~270MB of RAM at max.
+
+                Typically there is about zero increase in speed
+                on bigger chunksize, so you may ignore this kwarg
+                if you don't need it otherwise.
         """
         if self.__testmode:
-            raise TestModeEnabled('Can\'t use extract() on TestMode.')
+            raise TestModeEnabled('You can\'t use extract on TestMode.')
 
         if self.__mode == 1:
             raise StateAlreadyCreated('''
@@ -289,13 +314,18 @@ class LSB_WS:
                 not extract. Please make a new object'''
             )
         self.__mode = 2
-
-        hidden_bytes = []
         info_size = self.__get_information_size()
-        perc5, counter = int((5 / 100) * info_size), 1
+
+        perc5 = int((5 / 100) * info_size)
+        chunksize = chunksize or 250000
+        buffer, counter = [], 0
 
         for i in range(info_size*3): # 3 pixels per byte, so *3
-            hidden_bytes.append(self.__get_free_pixel_position())
+            if len(buffer) >= chunksize*3:
+                yield bytes(self.__coordinates_to_bytes(buffer))
+                buffer.clear()
+
+            buffer.append(self.__get_free_pixel_position())
 
             if self._progress_callback:
                 # We report only progress by 5% because
@@ -307,7 +337,8 @@ class LSB_WS:
         if self._progress_callback:
             self._progress_callback(info_size*3, info_size*3)
 
-        return bytes(self.__coordinates_to_bytes(hidden_bytes))
+        if buffer:
+            yield bytes(self.__coordinates_to_bytes(buffer))
 
     def save(self, fp, format: Optional[str] = None) -> None:
         """Sugar to the self.image.save method"""
