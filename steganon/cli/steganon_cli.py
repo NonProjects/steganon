@@ -30,7 +30,7 @@ class StructuredGroup(click.Group):
         formatter.write_text('')
         formatter.write_heading('Commands')
 
-        for k,v in self.commands.items():
+        for v in self.commands.values():
             if v.hidden:
                 continue
 

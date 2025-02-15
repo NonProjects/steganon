@@ -1,6 +1,8 @@
 from PIL import Image
 from io import BytesIO
 
+__all__ = ['pngify']
+
 
 def pngify(image: Image) -> Image:
     """
