@@ -77,12 +77,18 @@ def cli():
             will write to your STDOUT.'''
 )
 @click.option(
+    '--format', '-f',
+    help='''--output image file format. E.g TIFF, JPEG2000,
+            WEBP, etc. Should be specified if you Hide from
+            one format (e.g PNG) to another (e.g WEBP)'''
+)
+@click.option(
     '--testmode', is_flag=True,
     help='Will enable TestMode'
 )
-def hide(data, seed, input, output, testmode):
+def hide(data, seed, input, output, format, testmode):
     """
-    Command to hide Data inside pixels of Image
+    Hide your data inside Image pixels
 
     \b
     Example:\b
@@ -92,7 +98,10 @@ def hide(data, seed, input, output, testmode):
         steganon-cli hide --input image.png --data secret.txt\\
             --seed seed.txt --output STDOUT
         \b
-        ?: Ignore --output option to write back to --input.
+        steganon-cli hide --input image.png --data secret.txt\\
+            --seed seed.txt --output image_hidden.webp --format WEBP
+        \b
+        ?: Skip --output flag if you want to write back to --input.
     """
     if Path(data).exists():
         data = open(data, 'rb').read()
@@ -114,15 +123,13 @@ def hide(data, seed, input, output, testmode):
         progress_callback=progress_callback)
     lsb_ws.hide(data)
 
-    click.echo()
-
     if not output:
         output = input
 
     elif output == 'STDOUT':
         output = stdout.buffer
 
-    lsb_ws.save(output)
+    lsb_ws.save(output, format=format)
 
 @cli.command()
 @click.option(
@@ -154,7 +161,7 @@ def hide(data, seed, input, output, testmode):
 )
 def extract(seed, input, output, chunksize):
     """
-    Command to get Data from pixels of Image
+    Extract hidden data from Image pixels
 
     \b
     Example:\b
@@ -176,7 +183,6 @@ def extract(seed, input, output, chunksize):
     secret_data_gen = lsb_ws.extractgen(chunksize)
 
     click.echo()
-
     out = open(output, 'wb') if output else stdout.buffer
     for block in secret_data_gen:
         out.write(block)
@@ -188,24 +194,31 @@ def extract(seed, input, output, chunksize):
     help='Target Image to convert to PNG'
 )
 @click.option(
+    '--format', '-f',
+    help='Format of --output Image. Default is PNG.'
+)
+@click.option(
     '--output', '-o', required=True, prompt=True,
     help='''A file to which we will save converted to PNG
             --input file. Can be "STDOUT"'''
 )
-def _pngify(input, output):
+def pngify_(input, format, output):
     """
-    Command to convert any Image file to PNG
+    Convert any Image to PNG/lossless format
 
     \b
     Example:\b
         steganon-cli pngify --input image.jpg --output image.png
+        \b
+        steganon-cli pngify --input image.jpg --output image.tiff --format TIFF
     """
     output = stdout.buffer if output == 'STDOUT' else output
-    pngify(Image.open(input)).save(output, format='PNG')
+    prcsdi = pngify(Image.open(input), format=format)
+    prcsdi.save(output)
 
 @cli.command()
 def info():
-    """Command to retrieve basic info about App"""
+    """Get basic information about this build"""
 
     python_version = click.style(sys_version.split()[0], fg='white', bold=True)
     steganon_version = click.style(VERSION, fg='white', bold=True)

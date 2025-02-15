@@ -316,6 +316,9 @@ class LSB_WS:
         self.__mode = 2
         info_size = self.__get_information_size()
 
+        if not info_size:
+            raise InvalidSeed
+
         perc5 = int((5 / 100) * info_size)
         chunksize = chunksize or 250000
         buffer, counter = [], 0
@@ -341,5 +344,37 @@ class LSB_WS:
             yield bytes(self.__coordinates_to_bytes(buffer))
 
     def save(self, fp, format: Optional[str] = None) -> None:
-        """Sugar to the self.image.save method"""
-        self.image.save(fp, format=format)
+        """
+        Will save image under specified format with all
+        original metadata preserved. Uses the pillow
+        ``self.image.save()`` under the hood.
+
+        Arguments:
+            fp:
+                Target for self.image.save(fp). Can be
+                file path or File-like object.
+
+            format (``str``, optional):
+                Format of Image. Please note that we
+                support only lossless format, e.g PNG,
+                BMP, WEBP, etc. Otherwise behaviour on
+                extract process is **not defined**.
+        """
+        format = format or self.image.format
+
+        kwargs = {} # Unfortunately, pillow doesn't handle Metadata copying,
+        for field in ('exif', 'icc_profile'): # so we copy at least what possible
+            if field in self.image.info:
+                kwargs[field] = self.image.info[field]
+
+        if format.lower() == 'webp':
+            self.image.save(fp, format=format, lossless=True, **kwargs)
+
+        elif format.lower() == 'jpeg2000':
+            self.image.save(fp, format=format, quality_mode='lossless', **kwargs)
+
+        elif format.lower() == 'tiff':
+            self.image.save(fp, format=format, compression='none', **kwargs)
+        else:
+            # PNG & BMP is always lossless formats, thus we don't need flags
+            self.image.save(fp, format=format, **kwargs)
