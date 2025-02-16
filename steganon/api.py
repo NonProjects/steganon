@@ -4,8 +4,8 @@ from typing import Callable, Optional, Generator
 from PIL import Image
 
 from .errors import (
-    StateAlreadyCreated, SeedAlreadyUsed,
-    InvalidSeed, TestModeEnabled, IncorrectDecode
+    StateAlreadyCreated, SeedAlreadyUsed, InvalidSeed,
+    TestModeEnabled, IncorrectDecode, NotSupportedImage
 )
 __all__ = ['LSB_WS']
 
@@ -56,6 +56,15 @@ class LSB_WS:
         self.image = image
         self._size = self.image.size
         self.__px = self.image.load()
+
+        zz = self.__px[0,0] # zz is Zero/Zero, bbp is Bytes per pixel
+        self._bbp = 1 if isinstance(zz, int) else len(zz)
+
+        if self._bbp < 3:
+            raise NotSupportedImage(
+                'SteganoN supports only images with 3 or more bytes '
+               f'per pixel. You\'re trying to use {self._bbp} byte '
+                'Image mode. Consider RGB.')
 
         self.__information_pixels_pos = []
         self.__mode = 0
@@ -227,10 +236,6 @@ class LSB_WS:
 
                 candidate_pixel = self.__px[x,y]
                 self.__ep_px[x,y] = 1
-
-                # In case of grayscale, returns int instead of tuple
-                if isinstance(candidate_pixel, int):
-                    candidate_pixel = (candidate_pixel,)
 
                 if self.__testmode:
                     if current_bits[current_bits_pos] == 0:

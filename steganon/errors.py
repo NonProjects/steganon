@@ -16,4 +16,7 @@ class IncorrectDecode(SteganonError):
     """Can not extract any data due to error"""
 
 class TestModeEnabled(SteganonError):
-    """TestMode was enabled. Can't use this feature."""
+    """TestMode was enabled. Can't use this feature"""
+
+class NotSupportedImage(SteganonError):
+    """Image you're trying to use is not supported"""
