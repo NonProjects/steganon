@@ -130,6 +130,7 @@ def hide(data, seed, input, output, format, testmode):
         output = stdout.buffer
 
     lsb_ws.save(output, format=format)
+    click.echo('')
 
 @cli.command()
 @click.option(
@@ -182,10 +183,10 @@ def extract(seed, input, output, chunksize):
         progress_callback=progress_callback)
     secret_data_gen = lsb_ws.extractgen(chunksize)
 
-    click.echo()
     out = open(output, 'wb') if output else stdout.buffer
     for block in secret_data_gen:
         out.write(block)
+    click.echo('')
 
 @cli.command(name='pngify')
 @click.option(
