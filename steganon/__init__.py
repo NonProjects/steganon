@@ -1,7 +1,7 @@
 from . import api
 from . import tools
 
-from .api import LSB_WS
+from .api import LSB_MWS
 from .tools import pngify
 from .version import VERSION
 

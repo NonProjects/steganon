@@ -1,21 +1,35 @@
 # SteganoN
 
-**Steganon** is an extended implementation of the [LSB steganography algorithm](https://www.google.com/search?q=LSB+steganography+algorithm).
+**Steganon** is an extended implementation of the [LSB Matching steganography algorithm](https://www.google.com/search?q=LSB+Matching+steganography+algorithm).
 
-In short, steganography **LSB** is a method of hiding data inside pixels of image. Every pixel of an image consist of three integers (**0-255**, or **one byte**). They describe an amount of **R**ed, **G**reen and **B**lue colors. We take User's data to hide and convert it to a **bit string**; then we take next target pixel and select first integer: **R**. We convert this integer into bit string and change it's [least significant bit](https://en.wikipedia.org/wiki/Bit_numbering) to the next bit of User's data. Repeat this process for **G** and **B** then write altered pixel back into image. Repeat until User's data is not empty. Such change to **RGB** is invisible to human eye and gives us chance to hide **three bits** of data **per pixel** (three pixels per byte).
+In short, steganography **LSB** is a method of hiding data inside pixels of image. Every pixel of a regular image typically consist of three integers (**0-255**, or **one byte**). They describe an amount of **R**ed, **G**reen and **B**lue colors. We take User's data to hide and convert it to a **bits**; then we take the next target pixel and select first (color channel) integer: **R**. If the last bit of color channel is the **same as our next bit** from the data bit string, **we do nothing**; **if they differ**, we **randomly add or subtract 1 from color channel**. For example, if channel is `222`, we **randomly** `+1` or `-1`, so result would be either `221` or `223`. However, **if channel is** `0` **we always** `+1`, and **if** `255` **we always** `-1`. This essentially will change the [least significant bit](https://en.wikipedia.org/wiki/Bit_numbering) of color channel (e.g **R**) to the bit we want. Repeat this process for **G** and **B** then write altered pixel back into image. Repeat on the next pixels until User's data is not empty. Such change to **RGB** is invisible to human eye and gives us chance to hide **three bits** of data **per pixel** (or, in this library, — three pixels per byte).
 
-## Difference between classic LSB and LSB_WS
+## Difference between classic LSB and LSB\_MWS
 
+This repository implements a special type of LSB Matching: **LSB Matching With [Seed](https://en.wikipedia.org/wiki/Random_seed)** (short. `LSB_MWS`). This algorithm utilizes [**PRNG**](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) with changeable [seed](https://en.wikipedia.org/wiki/Random_seed) to select targeted pixels. Moreover, in `LSB_MWS`, one cover Image may contain different, multiple secret Datas on different, multiple Seeds. Thus, this project supports the **Deniable Hide** feature — you can reveal as much Data as you want.
 
-This repository implements a different type of LSB: **LSB With [Seed](https://en.wikipedia.org/wiki/Random_seed)** (short. `LSB_WS`). This is a (designed by [**me**](https://github.com/NotStatilko)) subclass of LSB that is use [**PRNG**](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) with changeable [seed](https://en.wikipedia.org/wiki/Random_seed) to determine targeted pixels. Here, *Seed* acts like password. You must know it to extract any hidden data, and fact that image contains any hidden data is more obscure. I believe that `LSB_WS` is more strong against any [analyze](https://www.google.com/search?q=how+to+crack+lsb+stegano).
+**Deniable Hide** works as a chain of Seeds. Instead of specifying only one Seed, you can pass as many as you wish and attach unique secret Data to each one of them independently. `LSB_MWS` *Hide function* will ensure that each bit of different Datas are stored in unique Pixel without overlapping. On *Extract*, to get a first hidden Data you will need to provide a Seed`(1)`, to get a second Data — Seed`(1)` & Seed`(2)`, to get a third Data — Seed`(1)`, Seed`(2)` & Seed`(3)`, and so on. There is a **zero correlations between Seeds**. In case of extortion, **you can reveal only Seed**`(1)` and criminal—or *whoever*, will **never** know that there is more hidden data deeper.
+
+**We don't feed Seeds directly into the PRNG**, we **hash** them firstly in a special\
+manner with `SHA512` **truncated to the *last* 32 bytes**.
+
+***(Iterations on MultiSeed with three Seeds)***
+1. We create *Initializator* hash by hashing a constant-*Basis* with `ImageSize` (*Width*/*Height*);
+2. We hash *Initializator* with Seed`(1)` — that is our **first** PRNG Seed;
+3. We hash Seed`(1)` with Seed`(2)`, — that is our **second** PRNG Seed;
+4. We hash Seed`(2)` with Seed`(3)`, — that is our **third** PRNG Seed.
+
+It means that **Seeds are dependent on each other** and *Initializator* **depends on the Image Width & Height**, thus, each unique-sized Image will utilize **different Seed values for PRNG**. This will add some protection against the brute-force or seed re-usage.
+
+###### This can be disabled with `use_raw_seed=True` on `LSB_MWS`, though *not* recommended.
 
 ## Installation
 
-**You can install SteganoN from PIP**
+**You can install SteganoN with PIP**
 ```bash
 pip install steganon
 ```
-**Or you can install with git clone**
+**Or you can install it after `git clone`**
 ```bash
 python -m venv steganon-env
 cd steganon-env && . bin/activate
@@ -28,88 +42,80 @@ pip install ./steganon
 # Install SteganoN with CLI
 pip install steganon[cli]
 ```
-
-![image](https://github.com/NonProjects/steganon/assets/43419673/79e67a0a-4f4b-400d-8aa9-fdfdd9bcb7f3)
-
+![steganon1.0](https://github.com/user-attachments/assets/608752c2-3cf3-4c6f-abf5-d652700f9e6a)
 
 ## Example
 
-### Hiding Secret Data
+### (One Seed) Hiding Secret Data
 
 ```python3
-from steganon import Image, LSB_WS
+from steganon import Image, LSB_MWS
 
 image = Image.open('example.png') # Open targeted Image
-lsb_ws = LSB_WS(image, b'seed_0') # Init with seed=b'seed_0'
+lsb_mws = LSB_MWS(image, b'seed_0') # Init with seed=b'seed_0'
 
-lsb_ws.hide(b'Secret!!!') # Write secret message to image pixels
+lsb_mws.hide(b'Secret!!!') # Write secret message to image pixels
 image.save('example.png') # Save altered image with secret data
 ```
-#### Under the hood (Pseudo-code)
+
+### (One Seed) Extracting Secret Data
 ```python
-# Pseudo-code here! See source file for exact implementation
-
-image = Image.open('example.png')
-
-secret, seed = 'Secret!!!', b'seed_0'
-secret_bin = binary(secret) = list('010100110110010101100011011100100110010101110100001000010010000100100001')
-
-prng = PRNG(seed) # In reality we use Python's random module, which is Mersenne Twister
-
-# The first 9 pixels of "prng.random_pixel" will be "Information
-# pixels". We will store the total bytesize of secret data in them,
-# so it's easy to know how much pixels we need to extract. As
-# 9 pixels is 3 bytes, the maximum allowed bytesize to hide per
-# one image is 16MiB-1 bytes == 16777215 (as integer).
-info_pixels = [prng.random_pixel(image) for _ in range(9)]
-
-while secret_bin:
-    # In the actual code we store position of pixels that we changed, so
-    # if "random_pixel" will return us pixel that already been altered
-    # we will request next position, up until we will not find empty one
-    next_pixel = image.get_pixel(prng.random_pixel(image)) # (255, 0, 0)
-
-    # Also, as there is three integers per pixel and only eight bits
-    # per byte of secret data we add zero (0) to start of every bits of
-    # byte of secret data so it's total size will be 9 and we can
-    # easily hide whole byte of secret data in three pixels. In this
-    # pseudo-code example this is ignored. 11111111 will be 011111111.
-
-    new_pixel = []
-    for color_integer in next_pixel:
-        color_bits = binary(color_integer) # 255 = 11111111 (First Iteration)
-        color_bits[-1] = secret_bin.pop(0) # color_bits ~= 11111110 (First Iteration)
-        new_pixel.append(binary_to_int(color_bits)) # 11111110 = 254 (First Iteration)
-
-    image.put_pixel(new_pixel) # [254, 1, 0] (After all Iterations)
-```
-### Extracting Secret Data
-```python
-# Secret Data extraction schema is pretty the same as hide process,
-# the only difference is that we only take last significant byte
-
-from steganon import Image, LSB_WS
+from steganon import Image, LSB_MWS
 
 image = Image.open('example.png') # Open Image with hidden data
-lsb_ws = LSB_WS(image, b'seed_0') # Init with seed=b'seed_0'
+lsb_mws = LSB_MWS(image, b'seed_0') # Init with seed=b'seed_0'
 
-print(lsb_ws.extract()) # b'Secret!!!'
+print(lsb_mws.extract()) # b'Secret!!!'
+```
+
+### (MultiSeed) Hiding Secret Data
+
+```python3
+from steganon import Image, LSB_MWS
+
+image = Image.open('example.png') # Open targeted Image
+seeds = (b'seed_0', b'seed_1',  b'seed_2') # You can use as much as you want
+lsb_mws = LSB_MWS(image, seeds) # Init LSB_MWS with multiple seeds
+
+lsb_mws.hide(b'Secret data on Seed(0)!!!') # Write secret message to image pixels
+lsb_mws.next() # Switch to the next Seed (b'seed_1')
+
+lsb_mws.hide(b'Secret data on Seed(1)!!!') # Write secret message to image pixels
+lsb_mws.next() # Switch to the next Seed (b'seed_2')
+
+lsb_mws.hide(b'Secret data on Seed(2)!!!') # Write secret message to image pixels
+image.save('example.png') # Save altered image with secret data
+```
+
+### (MultiSeed) Extracting Secret Data
+```python
+from steganon import Image, LSB_MWS
+
+image = Image.open('example.png') # Open targeted Image
+seeds = (b'seed_0', b'seed_1',  b'seed_2') # You can use as much as you want
+lsb_mws = LSB_MWS(image, seeds) # Init LSB_MWS with multiple seeds
+
+print(lsb_mws.extract()) # b'Secret data on Seed(0)!!!'
+lsb_mws.next() # Switch to the next Seed (b'seed_1')
+print(lsb_mws.extract()) # b'Secret data on Seed(1)!!!'
+lsb_mws.next() # Switch to the next Seed (b'seed_2')
+print(lsb_mws.extract()) # b'Secret data on Seed(2)!!!'
 ```
 
 ## Image Comparison
 
-Here is comparison between [**Original image (1)**](https://github.com/NonProjects/steganon/assets/43419673/4f0f7238-f51e-45c5-80b0-3e039b26c8de) and [**Image with written on pixels data (2)**](https://github.com/NonProjects/steganon/assets/43419673/ddc67292-d085-47dc-ae04-2dd131496899).
+Here is comparison between [**Original image (1)**](https://github.com/user-attachments/assets/2d639687-718e-4868-afbb-fc431b35e747) and [**Image with written on pixels data (2)**](https://github.com/user-attachments/assets/4b3de992-2fcb-4c54-84e2-94546cd0c168).
 
-<img src="https://github.com/NonProjects/steganon/assets/43419673/45e529b6-c45a-454c-bbf3-8426ba9dd9f5" width="777" height="-1"></img>
+<img src="https://github.com/user-attachments/assets/b218038d-94c6-41bc-b471-9567112e6c6e" width="777" height="-1"></img>
 
-[**Modified Image (2)**](https://github.com/NonProjects/steganon/assets/43419673/ddc67292-d085-47dc-ae04-2dd131496899) has whole [**Zen of Python**](https://peps.python.org/pep-0020/#the-zen-of-python) written on it.\
+[**Modified Image (2)**](https://github.com/user-attachments/assets/4b3de992-2fcb-4c54-84e2-94546cd0c168) has whole [**Zen of Python**](https://peps.python.org/pep-0020/#the-zen-of-python) written on it.\
 You can extract Zen from **(2)** by using Seed `b'spam_eggs'`
 
-## TestMode on LSB_WS
+## TestMode on LSB\_MWS
 
-`steganon.LSB_WS` class has a `testmode` key. We can use it to check affected pixels under different seeds
+`steganon.LSB_MWS` class has a `testmode` key. We can use it to check affected pixels under different seeds
 
-<img src="https://github.com/NonProjects/steganon/assets/43419673/91d0c920-2749-4a5d-afa1-b43d76b29aa0" width="777" height="-1"></img>
+<img src="https://github.com/user-attachments/assets/a2e1beda-f205-432e-8c2e-56dfb0d8ead7" width="777" height="-1"></img>
 
 ## Additional Information
 
@@ -123,18 +129,21 @@ You can extract Zen from **(2)** by using Seed `b'spam_eggs'`
 * ❌  **JPG**
 * ❌  **HEIF**
 
-0. **Always use a different seed!** Pixel positions will be the same on different images and text!
-1. All of this developed by me and currently **wasn't** verified by cryptography experts. Use with caution!
-2. `hide()` process can be long on big Data and small image. Note: **one byte of data is 3 pixels**;
-3. This library **will not** work with JPEG due to lossy design. Use lossless formats like PNG, WEBP, etc;
-4. Best template to hide data is a compressed JPEG turned to PNG. Library has `tools.pngify`, use it;
-5. Recommended image size is **2000x2000**+. The bigger image the bigger amount of bytes you can hide.
+0. This library & implementation **wasn't** verified by steganography experts. **Use with caution!**
+1. **Always use a different seed!** Pixel positions `*`may be the same on different Images and Data!
+2. This library **will not** work with JPEG due to its lossy design. **Use lossless formats** (e.g PNG, WEBP, etc);
+3. Best `**`template to hide data is a **compressed JPEG turned to PNG**. Library has `tools.pngify`, use it;
+4. The **bigger your Image**, the **bigger amount of Data you can hide** (though the less data—the `***`better).
 
-Contact me on **thenonproton@pm.me** (or just **open Issue**) if you have any feedback on this library.
+`*  ` If Image Width/Height and Seed are the same. **Always use a unique Seed**\
+`** ` Your cover Image **should** have a decent amount of "Noise" / Compression\
+`***` Quite obviously, **the lower coverage**, the **less chance for analyze tools**
+
+Contact me on **thenonproton@pm.me** (or just [**open Issue**](https://github.com/NonProjects/steganon/issues)) if you have any feedback on this library.
 
 ## All Aboard!
 
-Try to download [**this example image**](https://github.com/user-attachments/assets/58c07c1f-c5d8-4388-b7c4-0ecb218f4255) and extract secret information from it with seed `b'OZZY'`\
+Try to download [**this example image**](https://github.com/user-attachments/assets/cd1e1785-fead-4a80-83c7-f3400334c756) and extract secret information from it with seed `b'OZZY'`\
 Save data to the file with `.ogg` extension and play it with your favourite media player.
 
-###### Crazy? But that's how it goes!
+###### *Flying high again!*
