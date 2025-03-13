@@ -6,6 +6,7 @@ from io import BytesIO
 
 from traceback import format_exception
 from sys import stdout, version as sys_version
+from code import interact as interactive_console
 try:
     import click
 except ImportError:
@@ -428,6 +429,11 @@ def info():
         f'''python_version={python_version}, steganon_version={steganon_version}, '''
         f'''author={author}, github={github}, license={license}{black_sabbath}'''
     )
+
+@cli.command(hidden=True)
+def python():
+    """Launch interactive Python console"""
+    interactive_console(local=globals())
 
 def safe_steganon_cli_startup():
     try:
