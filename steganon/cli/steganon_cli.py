@@ -244,10 +244,16 @@ def hide(data, seed, input, output, format, silent, testmode, use_raw_seed):
             chunksize doesn't impact speed much'''
 )
 @click.option(
+    '--infosize', is_flag=True,
+    help='''If specified, will only echo Information
+    Size on last given --seed. If --out specified,
+    will write raw integer into the file.'''
+)
+@click.option(
     '--silent', is_flag=True,
     help='''Will not report progress if specified'''
 )
-def extract(seed, input, output, chunksize, silent):
+def extract(seed, input, output, chunksize, infosize, silent):
     """
     Extract hidden data from Image pixels
 
@@ -275,7 +281,7 @@ def extract(seed, input, output, chunksize, silent):
        Hide & Multiseed usage. Extract supports all formatting
        from the "hide", e.g Hexadecimal and file.
     """
-    progress_c = progress_callback if not silent else None
+    progress_c = None if silent else progress_callback
 
     seed, seed_p = seed.split(' | '), []
     if len(seed) == 1: # We want to ignore whitespace and also account for
@@ -283,7 +289,7 @@ def extract(seed, input, output, chunksize, silent):
                                   # --seed "SEED0|SEED1" (not "SEED0 | SEED1")
     output = (output or '').split('|')
     output = [o.strip() for o in output if o]
-    output.extend(['STDOUT']*(len(seed) - len(output)))
+    output.extend(['_STDOUT']*(len(seed) - len(output)))
 
     for s in seed:
         if Path(s).exists():
@@ -299,20 +305,44 @@ def extract(seed, input, output, chunksize, silent):
         progress_callback=progress_c)
 
     for i,_ in enumerate(seed_p):
-        if output[i] == 'STDOUT':
+        if infosize and i+1 < len(seed_p):
+            out = None
+        elif infosize and output[i] in ('_STDOUT', '_'):
+            out = None
+
+        elif output[i] in ('STDOUT', '_STDOUT'):
             out = stdout.buffer
-        elif output == '_':
+        elif output[i] == '_':
             out = None
         else:
             out = open(output[i], 'wb')
 
         secret_data_gen = lsb_mws.extractgen(chunksize)
         for block in secret_data_gen:
-            if out: out.write(block)
+            if out and not infosize:
+                out.write(block)
 
         if i+1 == len(seed_p):
             break
         lsb_mws.next()
+
+    if infosize and out:
+        out.write(str(lsb_mws.extract_infosize()).encode())
+
+    if infosize and not out:
+        power, n = 10**3, 0
+        power_labels = {0 : '', 1: 'K', 2: 'M'}
+        isize = lsb_mws.extract_infosize()
+
+        while isize > power:
+            isize /= power
+            n += 1
+
+        isize = f'{round(isize,1)}{power_labels[n]}B'
+
+        s = click.style('@ Size of embedded Info on Image:', fg='white', bold=True)
+        m = click.style(isize, fg='yellow', bold=True)
+        click.echo(f'{s} {m}({lsb_mws.extract_infosize()})')
 
     click.echo('')
 

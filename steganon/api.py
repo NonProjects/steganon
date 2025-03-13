@@ -10,7 +10,7 @@ from PIL import Image
 
 from .errors import (
     StateAlreadyCreated, TestModeEnabled,
-    NotSupportedImage
+    NotSupportedImage, InvalidSeed
 )
 __all__ = ['LSB_MWS']
 
@@ -244,6 +244,9 @@ class LSB_MWS:
 
         self.__hide_stopped_on = None
         self.__finalized = False
+
+        # Extracted InfoSize (per Seed) will be stored here
+        self.__exgen_info_size = None
 
         # We will use it only for LSB Matching, i.e
         # deciding if add or subtract from color
@@ -506,6 +509,18 @@ class LSB_MWS:
 
         return self.__written_info_size
 
+    def extract_infosize(self):
+        """
+        Will return amount of bytes written on Image
+        """
+        if self.__mode == 1:
+            raise StateAlreadyCreated('''
+                Write state is already created, can
+                not extract. Please make a new object'''
+            )
+        return self.__exgen_info_size or\
+            next(self.extractgen(_return_infosize_only=True))
+
     def extract(self) -> bytes:
         """
         Method that is used to extract hidden data
@@ -519,7 +534,8 @@ class LSB_MWS:
             data += chunk
         return data
 
-    def extractgen(self, chunksize: Optional[int] = None)\
+    def extractgen(self, chunksize: Optional[int] = None,
+            _return_infosize_only: Optional[bool] = False)\
             -> Generator[bytes, None, None]:
         """
         Generator that you can use to extract data by chunks
@@ -539,6 +555,10 @@ class LSB_MWS:
                 Typically there is about zero increase in speed
                 on bigger chunksize, so you may ignore this kwarg
                 unless you have a reason not to.
+
+            _return_infosize_only (``bool``, optional):
+                This is internal kwarg. Will return only Information
+                Size as integer if specified.
         """
         if self.__testmode:
             raise TestModeEnabled('You can\'t use extract on TestMode.')
@@ -550,7 +570,21 @@ class LSB_MWS:
             )
         self.__mode = 2
 
-        info_sizeb = 0 # We track info_size in bit size
+        if self.__exgen_info_size is not None:
+            if _return_infosize_only:
+                yield self.__exgen_info_size
+                return
+
+            if self.__exgen_info_size > self.max_allowed_bytes:
+                raise InvalidSeed(
+                     'Incorrect Seed! Max capacity of your Image is '
+                    f'{self.max_allowed_bytes}, but we extracted '
+                    f'InfoSize={self.__exgen_info_size}')
+
+            info_sizeb = self.__exgen_info_size*8 # We track info_size in bit size
+        else:
+            info_sizeb = 0 # We track info_size in bit size
+
         processedb = 0 # Amount of bits we processed
 
         pixel_buffer = [] # Here we will store cycle pixels for exract
@@ -655,6 +689,19 @@ class LSB_MWS:
 
                 for byte in bytes_buffer:
                     info_sizeb = (info_sizeb << 8) | byte
+
+                self.__exgen_info_size = info_sizeb
+
+                if _return_infosize_only:
+                    yield self.__exgen_info_size
+                    return
+
+                if info_sizeb > self.max_allowed_bytes:
+                    raise InvalidSeed(
+                         'Incorrect Seed! Max capacity of your Image is '
+                        f'{self.max_allowed_bytes}, but we extracted '
+                        f'InfoSize={info_sizeb}')
+
                 info_sizeb *= 8
 
                 perc5 = int((5 / 100) * info_sizeb)
@@ -708,6 +755,7 @@ class LSB_MWS:
         self.__current_seed += 1
         self.__finalized = False
         self.__hide_stopped_on = None
+        self.__exgen_info_size = None
         self.__written_info_size = 0
         self.__information_pixels_pos.clear()
         self.__random = Random(self.__seed[self.__current_seed])
