@@ -15,9 +15,9 @@ manner with `SHA512` **truncated to the *last* 32 bytes**.
 
 ***(Iterations on MultiSeed with three Seeds)***
 1. We create *Initializator* hash by hashing a constant-*Basis* with `ImageSize` (*Width*/*Height*);
-2. We hash *Initializator* with Seed`(1)` — that is our **first** PRNG Seed;
-3. We hash Seed`(1)` with Seed`(2)`, — that is our **second** PRNG Seed;
-4. We hash Seed`(2)` with Seed`(3)`, — that is our **third** PRNG Seed.
+2. We hash *Initializator* with **Seed**`(1)` — that is our ***first*** **prngS**`(1)` (PRNG Seed);
+3. We hash **prngS**`(1)` with **Seed**`(2)`, — that is our ***second*** PRNG Seed;
+4. We hash **prngS**`(2)` with **Seed**`(3)`, — that is our ***third*** PRNG Seed.
 
 It means that **Seeds are dependent on each other** and *Initializator* **depends on the Image Width & Height**, thus, each unique-sized Image will utilize **different Seed values for PRNG**. This will add some protection against the brute-force or seed re-usage.
 
@@ -74,7 +74,7 @@ print(lsb_mws.extract()) # b'Secret!!!'
 from steganon import Image, LSB_MWS
 
 image = Image.open('example.png') # Open targeted Image
-seeds = (b'seed_0', b'seed_1',  b'seed_2') # You can use as much as you want
+seeds = (b'seed_0', b'seed_1',  b'seed_2') # You can use as many as you want
 lsb_mws = LSB_MWS(image, seeds) # Init LSB_MWS with multiple seeds
 
 lsb_mws.hide(b'Secret data on Seed(0)!!!') # Write secret message to image pixels
@@ -92,7 +92,7 @@ image.save('example.png') # Save altered image with secret data
 from steganon import Image, LSB_MWS
 
 image = Image.open('example.png') # Open targeted Image
-seeds = (b'seed_0', b'seed_1',  b'seed_2') # You can use as much as you want
+seeds = (b'seed_0', b'seed_1',  b'seed_2') # You can use as many as you want
 lsb_mws = LSB_MWS(image, seeds) # Init LSB_MWS with multiple seeds
 
 print(lsb_mws.extract()) # b'Secret data on Seed(0)!!!'
