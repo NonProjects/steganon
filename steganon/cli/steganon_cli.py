@@ -307,8 +307,12 @@ def extract(seed, input, output, chunksize, infosize, silent):
     for i,_ in enumerate(seed_p):
         if infosize and i+1 < len(seed_p):
             out = None
+
         elif infosize and output[i] in ('_STDOUT', '_'):
-            out = None
+            out = None; break
+
+        elif infosize and output[i] in ('STDOUT', '_STDOUT'):
+            out = stdout.buffer; break
 
         elif output[i] in ('STDOUT', '_STDOUT'):
             out = stdout.buffer
