@@ -335,7 +335,7 @@ def extract(seed, input, output, chunksize, infosize, silent):
 
     if infosize and not out:
         power, n = 10**3, 0
-        power_labels = {0 : '', 1: 'K', 2: 'M'}
+        power_labels = {0 : '', 1: 'K', 2: 'M', 3: 'G'}
         isize = lsb_mws.extract_infosize()
 
         while isize > power:
