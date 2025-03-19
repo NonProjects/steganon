@@ -8,7 +8,7 @@ setup(
     name             = 'steganon',
     version          = version,
     license          = 'LGPL-2.1',
-    description      = 'Steganography LSB Matching (with PRNG by Seed)',
+    description      = 'LSB Matching Steganography with PRNG & Deniable Hide',
     long_description = open('README.md', encoding='utf-8').read(),
     author           = 'NonProjects',
     author_email     = 'thenonproton@pm.me',
