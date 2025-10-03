@@ -64,6 +64,11 @@ def cli():
             Keep it secret. Can be File, Hex or Text.'''
 )
 @click.option(
+    '--strip', is_flag=True,
+    help='''If specified, will remove special characters
+            (like \\n, \\t, etc) from Seed file after read'''
+)
+@click.option(
     '--input', '-i', required=True, prompt=True,
     type=click.Path(readable=True, exists=True),
 
@@ -96,7 +101,7 @@ def cli():
     '--use-raw-seed', is_flag=True,
     help='If specified, will not hash seed(s). Not recommended!'
 )
-def hide(data, seed, input, output, format, silent, testmode, use_raw_seed):
+def hide(data, seed, strip, input, output, format, silent, testmode, use_raw_seed):
     """
     Hide your data inside Image pixels
 
@@ -191,6 +196,7 @@ def hide(data, seed, input, output, format, silent, testmode, use_raw_seed):
     for s in seed:
         if Path(s).exists():
             s = open(s,'rb').read()
+            s = s.strip() if strip else s
         else:
             if s.startswith('0x'):
                 s = bytes.fromhex(s[2:])
@@ -220,6 +226,11 @@ def hide(data, seed, input, output, format, silent, testmode, use_raw_seed):
     '--seed', '-s', required=True, prompt=True,
     help='''Seed to extract target pixels.
             Can be File, Hex or Text.'''
+)
+@click.option(
+    '--strip', is_flag=True,
+    help='''If specified, will remove special characters
+            (like \\n, \\t, etc) from Seed file after read'''
 )
 @click.option(
     '--input', '-i', required=True, prompt=True,
@@ -253,7 +264,7 @@ def hide(data, seed, input, output, format, silent, testmode, use_raw_seed):
     '--silent', is_flag=True,
     help='''Will not report progress if specified'''
 )
-def extract(seed, input, output, chunksize, infosize, silent):
+def extract(seed, strip, input, output, chunksize, infosize, silent):
     """
     Extract hidden data from Image pixels
 
@@ -293,7 +304,8 @@ def extract(seed, input, output, chunksize, infosize, silent):
 
     for s in seed:
         if Path(s).exists():
-            s = open(s,'rb').read().strip()
+            s = open(s,'rb').read()
+            s = s.strip() if strip else s
         else:
             if s.startswith('0x'):
                 s = bytes.fromhex(s[2:])
