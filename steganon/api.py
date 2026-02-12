@@ -239,7 +239,15 @@ class LSB_MWS:
         self.__written_info_size = 0 # Per seed
         self.__total_written_info_size = 0 # Total
 
-        self.__random = Random(self.__seed[self.__current_seed])
+        self.__random = Random()
+        # Python team can change some internal things in "random" module
+        # any time on new Python version (although it's rare). We can lock
+        # the seeder version to the latest available at the moment of
+        # writing this Message (version 2). This should(tm) allow User
+        # to fetch their data on any future Python version. See in Docs:
+        # docs.python.org/3/library/random.html#notes-on-reproducibility
+        self.__random.seed(self.__seed[self.__current_seed], version=2)
+
         self._progress_callback = progress_callback
 
         self.__hide_stopped_on = None
@@ -248,8 +256,8 @@ class LSB_MWS:
         # Extracted InfoSize (per Seed) will be stored here
         self.__exgen_info_size = None
 
-        # We will use it only for LSB Matching, i.e
-        # deciding if add or subtract from color
+        # We will use this only for LSB Matching, i.e
+        # deciding if add or subtract from the color
         self._true_random = Random(urandom(32))
 
     @property
